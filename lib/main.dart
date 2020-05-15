@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:quizzler/quiz_brain.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:sprintf/sprintf.dart';
 
 void main() => runApp(Quizzler());
 
@@ -25,6 +28,34 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  List<Icon> scorekeeper = [];
+  QuizBrain quizBrain = QuizBrain();
+
+  void submitAnswer(bool answer) {
+    setState(() {
+      if (quizBrain.checkAnswer(answer)) {
+        scorekeeper.add(
+          Icon(
+            Icons.check,
+            color: Colors.green,
+          ),
+        );
+      } else {
+        scorekeeper.add(
+          Icon(
+            Icons.close,
+            color: Colors.red,
+          ),
+        );
+      }
+      if (quizBrain.isExhausted()) {
+        generateAlert();
+      } else {
+        quizBrain.nextQuestion();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +68,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                quizBrain.getQuestion(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -61,7 +92,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () {
-                //The user picked true.
+                submitAnswer(true);
               },
             ),
           ),
@@ -79,14 +110,54 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () {
-                //The user picked false.
+                submitAnswer(false);
               },
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          children: scorekeeper,
+        ),
       ],
     );
+  }
+
+  void generateAlert() {
+    int answersCorrect = 0;
+    int totalAnswers = scorekeeper.length;
+    scorekeeper.forEach((element) {
+      if (element.icon == Icons.check) {
+        answersCorrect++;
+      }
+    });
+
+    Alert(
+      context: context,
+      type: AlertType.info,
+      title: "Quiz Complete!",
+      desc: sprintf(
+          "You recieved a score of: %i/%i", [answersCorrect, totalAnswers]),
+      buttons: [
+        DialogButton(
+          child: Text(
+            "Restart",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () {
+            setState(() {
+              Navigator.pop(context);
+              this.reset();
+            });
+          },
+          width: 120,
+        )
+      ],
+    ).show();
+  }
+
+  void reset() {
+    scorekeeper = [];
+    quizBrain.reset();
   }
 }
 
